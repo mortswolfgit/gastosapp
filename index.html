@@ -670,7 +670,8 @@
     try {
       await msalInstance.handleRedirectPromise();
     } catch (e) {
-      document.getElementById("error-login").textContent = "No se pudo completar el inicio de sesión. Inténtalo de nuevo.";
+      const detalle = (e && (e.errorCode || e.errorMessage || e.message)) || "sin más detalle";
+      document.getElementById("error-login").textContent = "No se pudo completar el inicio de sesión: " + detalle;
     }
     const cuentas = msalInstance.getAllAccounts();
     mostrarPantalla(cuentas.length > 0 ? "inicio" : "login");
