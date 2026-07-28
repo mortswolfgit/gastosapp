@@ -387,7 +387,7 @@
   const msalConfig = {
     auth: {
       clientId: CLIENT_ID,
-      authority: "https://login.microsoftonline.com/common",
+      authority: "https://login.microsoftonline.com/consumers",
       redirectUri: REDIRECT_URI
     },
     cache: {
@@ -670,7 +670,9 @@
     try {
       await msalInstance.handleRedirectPromise();
     } catch (e) {
-      const detalle = (e && (e.errorCode || e.errorMessage || e.message)) || "sin más detalle";
+      const codigo = (e && e.errorCode) || "";
+      const mensaje = (e && (e.errorMessage || e.message)) || "";
+      const detalle = [codigo, mensaje].filter(Boolean).join(" — ") || "sin más detalle";
       document.getElementById("error-login").textContent = "No se pudo completar el inicio de sesión: " + detalle;
     }
     const cuentas = msalInstance.getAllAccounts();
