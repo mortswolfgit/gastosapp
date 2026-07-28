@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GastosApp</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1F4D3D">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #EEF0EA;
+    --paper-dark: #E2E4DB;
+    --card: #FFFFFF;
+    --ink: #1F2A24;
+    --ink-soft: #5B6B60;
+    --line: #C9CDBF;
+    --ticket: #1F4D3D;
+    --ticket-soft: #E6EDE9;
+    --factura: #7A3B2E;
+    --factura-soft: #F2E7E3;
+    --error: #A6392B;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'IBM Plex Sans', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 20px 20px 8px;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  header h1 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 20px;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+
+  header .marca {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-soft);
+    letter-spacing: 0.04em;
+  }
+
+  main {
+    flex: 1;
+    padding: 8px 20px 32px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  section { display: none; flex: 1; flex-direction: column; }
+  section.activa { display: flex; }
+
+  /* Pantalla de carga */
+  #pantalla-carga { align-items: center; justify-content: center; gap: 14px; }
+  .spinner {
+    width: 28px; height: 28px;
+    border: 3px solid var(--line);
+    border-top-color: var(--ticket);
+    border-radius: 50%;
+    animation: girar 0.8s linear infinite;
+  }
+  @keyframes girar { to { transform: rotate(360deg); } }
+  #pantalla-carga p { font-family: var(--font-mono); font-size: 13px; color: var(--ink-soft); }
+
+  /* Login */
+  #pantalla-login { align-items: center; justify-content: center; text-align: center; gap: 18px; }
+  #pantalla-login p { color: var(--ink-soft); max-width: 280px; line-height: 1.5; }
+
+  /* Botones base */
+  button {
+    font-family: var(--font-body);
+    font-weight: 600;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 15px;
+  }
+  button:focus-visible { outline: 3px solid #1F4D3D; outline-offset: 2px; }
+
+  .btn-primario {
+    background: var(--ink);
+    color: #fff;
+    padding: 14px 24px;
+  }
+  .btn-secundario {
+    background: var(--card);
+    color: var(--ink);
+    border: 1.5px solid var(--line);
+    padding: 12px 20px;
+  }
+  .btn-texto {
+    background: none;
+    color: var(--ink-soft);
+    font-weight: 500;
+    font-size: 13px;
+    padding: 8px;
+    text-decoration: underline;
+  }
+  button:disabled { opacity: 0.5; cursor: default; }
+
+  /* Pantalla de inicio: dos stubs */
+  #pantalla-inicio { gap: 16px; padding-top: 8px; }
+  .elecciones { display: flex; flex-direction: column; gap: 18px; margin-top: 8px; }
+
+  .stub {
+    position: relative;
+    background: var(--card);
+    border-radius: 6px 6px 0 0;
+    padding: 22px 20px 30px;
+    text-align: left;
+    display: block;
+    width: 100%;
+  }
+  .stub::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 14px;
+    background-image:
+      linear-gradient(-45deg, var(--paper) 7px, transparent 0),
+      linear-gradient(45deg, var(--paper) 7px, transparent 0);
+    background-position: left bottom;
+    background-repeat: repeat-x;
+    background-size: 14px 14px;
+  }
+  .stub .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+    display: block;
+    margin-bottom: 6px;
+  }
+  .stub .titulo {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 22px;
+    display: block;
+  }
+  .stub .desc {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-top: 4px;
+    display: block;
+  }
+  .stub-ticket { border-left: 5px solid var(--ticket); }
+  .stub-factura { border-left: 5px solid var(--factura); }
+  .stub-ticket .eyebrow, .stub-ticket .titulo { color: var(--ticket); }
+  .stub-factura .eyebrow, .stub-factura .titulo { color: var(--factura); }
+
+  /* Formularios */
+  .cabecera-form {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .cabecera-form .titulo-form {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 19px;
+  }
+
+  .zona-foto {
+    background: var(--card);
+    border: 1.5px dashed var(--line);
+    border-radius: 10px;
+    padding: 18px;
+    text-align: center;
+    margin-bottom: 18px;
+  }
+  .zona-foto img {
+    max-width: 100%;
+    max-height: 220px;
+    border-radius: 6px;
+    display: block;
+    margin: 0 auto 12px;
+  }
+  .zona-foto p { color: var(--ink-soft); font-size: 13px; margin: 0 0 12px; }
+
+  label {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+  }
+  .campo { margin-bottom: 16px; }
+  input[type="text"], select {
+    width: 100%;
+    font-family: var(--font-mono);
+    font-size: 17px;
+    padding: 12px 14px;
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--ink);
+  }
+  input[type="text"]:focus, select:focus { outline: 3px solid var(--ticket); outline-offset: 1px; border-color: var(--ticket); }
+  .error-campo { color: var(--error); font-size: 12px; margin-top: 6px; display: none; }
+  .error-campo.visible { display: block; }
+
+  .acciones-form { display: flex; flex-direction: column; gap: 10px; margin-top: auto; padding-top: 12px; }
+
+  .estado-guardado {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--ink-soft);
+    text-align: center;
+    margin-top: 12px;
+    min-height: 18px;
+  }
+  .estado-guardado.error { color: var(--error); }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    top: 0; left: 50%;
+    transform: translate(-50%, -110%);
+    transition: transform 0.35s cubic-bezier(.16,.84,.44,1);
+    background: var(--ink);
+    color: #fff;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: 14px 18px;
+    border-radius: 0 0 10px 10px;
+    max-width: 90%;
+    text-align: center;
+    z-index: 50;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+  }
+  #toast.visible { transform: translate(-50%, 0); }
+
+  @media (prefers-reduced-motion: reduce) {
+    #toast { transition: opacity 0.2s; transform: translate(-50%, 0); opacity: 0; }
+    #toast.visible { opacity: 1; }
+    .spinner { animation: none; border-top-color: var(--line); }
+  }
+
+  footer {
+    padding: 6px 20px 18px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>GastosApp</h1>
+  <span class="marca">/ registro de gastos</span>
+</header>
+
+<main id="app">
+
+  <section id="pantalla-carga" class="activa">
+    <div class="spinner"></div>
+    <p>CARGANDO…</p>
+  </section>
+
+  <section id="pantalla-login">
+    <p>Inicia sesión con tu cuenta Microsoft para guardar tickets y facturas directamente en tu OneDrive.</p>
+    <button class="btn-primario" id="btn-login">Iniciar sesión con Microsoft</button>
+    <p id="error-login" class="estado-guardado error"></p>
+  </section>
+
+  <section id="pantalla-inicio">
+    <p style="color:var(--ink-soft); font-size:14px; margin:0;">¿Qué quieres registrar?</p>
+    <div class="elecciones">
+      <button class="stub stub-ticket" id="btn-ir-ticket" type="button">
+        <span class="eyebrow">DIETAS · TAXI · PARKING</span>
+        <span class="titulo">Ticket</span>
+        <span class="desc">Foto + importe + concepto. Se apunta en el acto.</span>
+      </button>
+      <button class="stub stub-factura" id="btn-ir-factura" type="button">
+        <span class="eyebrow">GASOLINA Y OTRAS CON MÁS DATOS</span>
+        <span class="titulo">Factura</span>
+        <span class="desc">Solo la foto. Se procesa más adelante.</span>
+      </button>
+    </div>
+    <div style="margin-top:auto; padding-top:20px; text-align:center;">
+      <button class="btn-texto" id="btn-logout" type="button">Cerrar sesión</button>
+    </div>
+  </section>
+
+  <section id="pantalla-ticket">
+    <div class="cabecera-form">
+      <button class="btn-texto" id="btn-volver-ticket" type="button">← Volver</button>
+      <span class="titulo-form" style="color:var(--ticket);">Ticket</span>
+    </div>
+
+    <div class="zona-foto" id="zona-foto-ticket">
+      <p id="texto-foto-ticket">Todavía no hay foto</p>
+      <input type="file" id="input-foto-ticket" accept="image/*" capture="environment" hidden>
+      <button class="btn-secundario" id="btn-foto-ticket" type="button">📷 Hacer foto</button>
+    </div>
+
+    <div class="campo">
+      <label for="input-importe">Importe (€)</label>
+      <input type="text" id="input-importe" inputmode="decimal" placeholder="12,50">
+      <p class="error-campo" id="error-importe">Escribe un importe válido, por ejemplo 12,50</p>
+    </div>
+
+    <div class="campo">
+      <label for="input-concepto">Concepto</label>
+      <select id="input-concepto">
+        <option value="Comida">Comida</option>
+        <option value="Desayuno">Desayuno</option>
+        <option value="Taxi">Taxi</option>
+        <option value="Parking">Parking</option>
+        <option value="Otros">Otros</option>
+      </select>
+    </div>
+
+    <div class="acciones-form">
+      <button class="btn-primario" id="btn-guardar-ticket" type="button" style="background:var(--ticket);">Guardar ticket</button>
+      <p class="estado-guardado" id="estado-ticket"></p>
+    </div>
+  </section>
+
+  <section id="pantalla-factura">
+    <div class="cabecera-form">
+      <button class="btn-texto" id="btn-volver-factura" type="button">← Volver</button>
+      <span class="titulo-form" style="color:var(--factura);">Factura</span>
+    </div>
+
+    <div class="zona-foto" id="zona-foto-factura">
+      <p id="texto-foto-factura">Haz la foto de la factura. Se guarda sola, sin más pasos.</p>
+      <input type="file" id="input-foto-factura" accept="image/*" capture="environment" hidden>
+      <button class="btn-secundario" id="btn-foto-factura" type="button" style="border-color:var(--factura); color:var(--factura);">📷 Hacer foto</button>
+    </div>
+
+    <p class="estado-guardado" id="estado-factura"></p>
+  </section>
+
+</main>
+
+<footer></footer>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://alcdn.msauth.net/browser/2.35.0/js/msal-browser.min.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  // ---------- Configuración ----------
+  const CLIENT_ID = "82a1440b-ed53-4582-9a80-0a9b68ed1ca0";
+  const REDIRECT_URI = "https://mortswolfgit.github.io/gastosapp/";
+  const GRAPH = "https://graph.microsoft.com/v1.0";
+  const SCOPES = ["Files.ReadWrite"];
+  const CARPETA_TICKETS = "GastosApp/Tickets";
+  const CARPETA_FACTURAS = "GastosApp/Facturas pendientes";
+  const NOMBRE_CSV = "tickets.csv";
+  const CABECERA_CSV = "fecha;importe;concepto;archivo";
+
+  const msalConfig = {
+    auth: {
+      clientId: CLIENT_ID,
+      authority: "https://login.microsoftonline.com/common",
+      redirectUri: REDIRECT_URI
+    },
+    cache: {
+      cacheLocation: "localStorage",
+      storeAuthStateInCookie: false
+    }
+  };
+  const msalInstance = new msal.PublicClientApplication(msalConfig);
+
+  // ---------- Utilidades de pantalla ----------
+  const pantallas = ["carga", "login", "inicio", "ticket", "factura"];
+  function mostrarPantalla(nombre) {
+    pantallas.forEach(p => {
+      document.getElementById("pantalla-" + p).classList.toggle("activa", p === nombre);
+    });
+  }
+
+  let toastTimeout;
+  function mostrarToast(texto) {
+    const toast = document.getElementById("toast");
+    toast.textContent = texto;
+    toast.classList.add("visible");
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => toast.classList.remove("visible"), 3200);
+  }
+
+  // ---------- Utilidades de fecha ----------
+  function pad(n) { return String(n).padStart(2, "0"); }
+  function partesFecha() {
+    const d = new Date();
+    return {
+      fechaEs: `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`,
+      marcaArchivo: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`
+    };
+  }
+
+  // ---------- Importe ----------
+  function importeValido(v) {
+    return /^\d+([.,]\d{1,2})?$/.test(v.trim());
+  }
+  function normalizarImporte(v) {
+    const n = parseFloat(v.trim().replace(",", "."));
+    return n.toFixed(2).replace(".", ",");
+  }
+
+  // ---------- Compresión de imagen ----------
+  function comprimirImagen(file, maxDim = 1600, calidad = 0.72) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxDim) {
+          height = Math.round(height * (maxDim / width));
+          width = maxDim;
+        } else if (height >= width && height > maxDim) {
+          width = Math.round(width * (maxDim / height));
+          height = maxDim;
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        canvas.toBlob(blob => {
+          URL.revokeObjectURL(url);
+          if (blob) resolve(blob); else reject(new Error("No se pudo procesar la foto"));
+        }, "image/jpeg", calidad);
+      };
+      img.onerror = () => reject(new Error("No se pudo leer la foto"));
+      img.src = url;
+    });
+  }
+
+  // ---------- Microsoft Graph ----------
+  function codificarRuta(ruta) {
+    return ruta.split("/").map(encodeURIComponent).join("/");
+  }
+
+  async function obtenerToken() {
+    const cuentas = msalInstance.getAllAccounts();
+    if (cuentas.length === 0) throw new Error("No hay sesión iniciada");
+    try {
+      const resp = await msalInstance.acquireTokenSilent({ scopes: SCOPES, account: cuentas[0] });
+      return resp.accessToken;
+    } catch (e) {
+      await msalInstance.acquireTokenRedirect({ scopes: SCOPES, account: cuentas[0] });
+      // acquireTokenRedirect navega fuera de la página; no continúa aquí.
+      throw new Error("Redirigiendo para renovar la sesión…");
+    }
+  }
+
+  async function asegurarCarpeta(token, ruta) {
+    const partes = ruta.split("/");
+    let actual = "";
+    for (const parte of partes) {
+      const padre = actual;
+      actual = actual ? `${actual}/${parte}` : parte;
+      const comprobar = await fetch(`${GRAPH}/me/drive/root:/${codificarRuta(actual)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (comprobar.status === 404) {
+        const urlCrear = padre
+          ? `${GRAPH}/me/drive/root:/${codificarRuta(padre)}:/children`
+          : `${GRAPH}/me/drive/root/children`;
+        const crear = await fetch(urlCrear, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ name: parte, folder: {}, "@microsoft.graph.conflictBehavior": "fail" })
+        });
+        if (!crear.ok && crear.status !== 409) {
+          throw new Error(`No se pudo crear la carpeta "${actual}" en OneDrive`);
+        }
+      } else if (!comprobar.ok) {
+        throw new Error(`No se pudo comprobar la carpeta "${actual}" en OneDrive`);
+      }
+    }
+  }
+
+  async function subirArchivo(token, ruta, blob, tipo) {
+    const res = await fetch(`${GRAPH}/me/drive/root:/${codificarRuta(ruta)}:/content`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": tipo },
+      body: blob
+    });
+    if (!res.ok) throw new Error(`No se pudo subir "${ruta}" a OneDrive`);
+    return res.json();
+  }
+
+  async function leerTexto(token, ruta) {
+    const res = await fetch(`${GRAPH}/me/drive/root:/${codificarRuta(ruta)}:/content`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`No se pudo leer "${ruta}" en OneDrive`);
+    return res.text();
+  }
+
+  // ---------- Guardar ticket ----------
+  let fotoTicket = null;
+
+  async function guardarTicket() {
+    const importeCampo = document.getElementById("input-importe");
+    const errorImporte = document.getElementById("error-importe");
+    const concepto = document.getElementById("input-concepto").value;
+    const estado = document.getElementById("estado-ticket");
+    const btn = document.getElementById("btn-guardar-ticket");
+
+    errorImporte.classList.remove("visible");
+    estado.classList.remove("error");
+    estado.textContent = "";
+
+    if (!fotoTicket) {
+      estado.classList.add("error");
+      estado.textContent = "Falta la foto del ticket.";
+      return;
+    }
+    if (!importeValido(importeCampo.value)) {
+      errorImporte.classList.add("visible");
+      return;
+    }
+
+    btn.disabled = true;
+    estado.textContent = "Guardando…";
+
+    try {
+      const token = await obtenerToken();
+      const importe = normalizarImporte(importeCampo.value);
+      const { fechaEs, marcaArchivo } = partesFecha();
+      const nombreFoto = `${marcaArchivo}.jpg`;
+      const blob = await comprimirImagen(fotoTicket);
+
+      await asegurarCarpeta(token, CARPETA_TICKETS);
+      await subirArchivo(token, `${CARPETA_TICKETS}/${nombreFoto}`, blob, "image/jpeg");
+
+      let csv = await leerTexto(token, `${CARPETA_TICKETS}/${NOMBRE_CSV}`);
+      if (csv === null) csv = CABECERA_CSV;
+      csv += `\n${fechaEs};${importe};${concepto};${nombreFoto}`;
+      await subirArchivo(token, `${CARPETA_TICKETS}/${NOMBRE_CSV}`, new Blob([csv], { type: "text/csv" }), "text/csv");
+
+      mostrarToast(`✓ TICKET GUARDADO · ${importe}€ · ${concepto.toUpperCase()}`);
+      reiniciarFormularioTicket();
+      mostrarPantalla("inicio");
+    } catch (e) {
+      estado.classList.add("error");
+      estado.textContent = e.message || "No se pudo guardar. Comprueba tu conexión e inténtalo de nuevo.";
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function reiniciarFormularioTicket() {
+    fotoTicket = null;
+    document.getElementById("input-importe").value = "";
+    document.getElementById("input-concepto").selectedIndex = 0;
+    document.getElementById("texto-foto-ticket").textContent = "Todavía no hay foto";
+    document.getElementById("estado-ticket").textContent = "";
+    const previa = document.querySelector("#zona-foto-ticket img");
+    if (previa) previa.remove();
+  }
+
+  // ---------- Guardar factura ----------
+  async function guardarFactura(file) {
+    const estado = document.getElementById("estado-factura");
+    const btnFoto = document.getElementById("btn-foto-factura");
+    estado.classList.remove("error");
+    estado.textContent = "Guardando…";
+    btnFoto.disabled = true;
+
+    try {
+      const token = await obtenerToken();
+      const { marcaArchivo } = partesFecha();
+      const nombreFoto = `${marcaArchivo}.jpg`;
+      const blob = await comprimirImagen(file);
+
+      await asegurarCarpeta(token, CARPETA_FACTURAS);
+      await subirArchivo(token, `${CARPETA_FACTURAS}/${nombreFoto}`, blob, "image/jpeg");
+
+      mostrarToast("✓ FACTURA GUARDADA · pendiente de procesar");
+      estado.textContent = "";
+      mostrarPantalla("inicio");
+    } catch (e) {
+      estado.classList.add("error");
+      estado.textContent = e.message || "No se pudo guardar. Comprueba tu conexión e inténtalo de nuevo.";
+    } finally {
+      btnFoto.disabled = false;
+    }
+  }
+
+  // ---------- Eventos ----------
+  document.getElementById("btn-login").addEventListener("click", () => {
+    msalInstance.loginRedirect({ scopes: SCOPES });
+  });
+
+  document.getElementById("btn-logout").addEventListener("click", () => {
+    msalInstance.logoutRedirect();
+  });
+
+  document.getElementById("btn-ir-ticket").addEventListener("click", () => {
+    reiniciarFormularioTicket();
+    mostrarPantalla("ticket");
+  });
+  document.getElementById("btn-volver-ticket").addEventListener("click", () => mostrarPantalla("inicio"));
+
+  document.getElementById("btn-ir-factura").addEventListener("click", () => {
+    document.getElementById("estado-factura").textContent = "";
+    mostrarPantalla("factura");
+  });
+  document.getElementById("btn-volver-factura").addEventListener("click", () => mostrarPantalla("inicio"));
+
+  document.getElementById("btn-foto-ticket").addEventListener("click", () => {
+    document.getElementById("input-foto-ticket").click();
+  });
+  document.getElementById("input-foto-ticket").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    fotoTicket = file;
+    const zona = document.getElementById("zona-foto-ticket");
+    let img = zona.querySelector("img");
+    if (!img) {
+      img = document.createElement("img");
+      zona.insertBefore(img, zona.firstChild);
+    }
+    img.src = URL.createObjectURL(file);
+    document.getElementById("texto-foto-ticket").textContent = "Foto lista";
+  });
+
+  document.getElementById("btn-guardar-ticket").addEventListener("click", guardarTicket);
+
+  document.getElementById("btn-foto-factura").addEventListener("click", () => {
+    document.getElementById("input-foto-factura").click();
+  });
+  document.getElementById("input-foto-factura").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    guardarFactura(file);
+  });
+
+  // ---------- Arranque ----------
+  window.addEventListener("load", async () => {
+    try {
+      await msalInstance.handleRedirectPromise();
+    } catch (e) {
+      document.getElementById("error-login").textContent = "No se pudo completar el inicio de sesión. Inténtalo de nuevo.";
+    }
+    const cuentas = msalInstance.getAllAccounts();
+    mostrarPantalla(cuentas.length > 0 ? "inicio" : "login");
+  });
+})();
+</script>
+</body>
+</html>
