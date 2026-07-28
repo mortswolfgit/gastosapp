@@ -365,6 +365,11 @@
       </select>
     </div>
 
+    <div class="campo">
+      <label for="input-observaciones">Observaciones (opcional)</label>
+      <input type="text" id="input-observaciones" placeholder="Ej. reunión con...">
+    </div>
+
     <div class="acciones-form">
       <button class="btn-primario" id="btn-guardar-ticket" type="button" style="background:var(--ticket);">Guardar ticket</button>
       <p class="estado-guardado" id="estado-ticket"></p>
@@ -378,12 +383,24 @@
     </div>
 
     <div class="zona-foto" id="zona-foto-factura">
-      <p id="texto-foto-factura">Haz la foto de la factura. Se guarda sola, sin más pasos.</p>
+      <p id="texto-foto-factura">Todavía no hay foto</p>
       <input type="file" id="input-foto-factura" accept="image/*" capture="environment" hidden>
       <button class="btn-secundario" id="btn-foto-factura" type="button" style="border-color:var(--factura); color:var(--factura);">📷 Hacer foto</button>
     </div>
 
-    <p class="estado-guardado" id="estado-factura"></p>
+    <div class="campo">
+      <label for="input-categoria-factura">Categoría</label>
+      <select id="input-categoria-factura">
+        <option value="Gasolina">Gasolina</option>
+        <option value="Material Oficina">Material Oficina</option>
+        <option value="Otros">Otros</option>
+      </select>
+    </div>
+
+    <div class="acciones-form">
+      <button class="btn-primario" id="btn-guardar-factura" type="button" style="background:var(--factura);">Guardar factura</button>
+      <p class="estado-guardado" id="estado-factura"></p>
+    </div>
   </section>
 
 </main>
@@ -405,7 +422,7 @@
   const CARPETA_TICKETS = "GastosApp/Tickets";
   const CARPETA_FACTURAS = "GastosApp/Facturas pendientes";
   const NOMBRE_CSV = "tickets.csv";
-  const CABECERA_CSV = "fecha;importe;concepto;archivo";
+  const CABECERA_CSV = "fecha;importe;concepto;archivo;observaciones";
 
   const msalConfig = {
     auth: {
@@ -454,6 +471,12 @@
   function normalizarImporte(v) {
     const n = parseFloat(v.trim().replace(",", "."));
     return n.toFixed(2).replace(".", ",");
+  }
+  function escaparCampoCSV(v) {
+    if (v.includes(";") || v.includes('"') || v.includes("\n")) {
+      return '"' + v.replace(/"/g, '""') + '"';
+    }
+    return v;
   }
 
   // ---------- Compresión de imagen ----------
@@ -578,8 +601,9 @@
     try {
       const token = await obtenerToken();
       const importe = normalizarImporte(importeCampo.value);
+      const observaciones = document.getElementById("input-observaciones").value.trim();
       const { fechaEs, marcaArchivo } = partesFecha();
-      const nombreFoto = `${marcaArchivo}.jpg`;
+      const nombreFoto = `${marcaArchivo}_${concepto}.jpg`;
       const blob = await comprimirImagen(fotoTicket);
 
       await asegurarCarpeta(token, CARPETA_TICKETS);
@@ -587,7 +611,7 @@
 
       let csv = await leerTexto(token, `${CARPETA_TICKETS}/${NOMBRE_CSV}`);
       if (csv === null) csv = CABECERA_CSV;
-      csv += `\n${fechaEs};${importe};${concepto};${nombreFoto}`;
+      csv += `\n${fechaEs};${importe};${concepto};${nombreFoto};${escaparCampoCSV(observaciones)}`;
       await subirArchivo(token, `${CARPETA_TICKETS}/${NOMBRE_CSV}`, new Blob([csv], { type: "text/csv" }), "text/csv");
 
       mostrarToast(`✓ TICKET GUARDADO · ${importe}€ · ${concepto.toUpperCase()}`);
@@ -605,6 +629,7 @@
     fotoTicket = null;
     document.getElementById("input-importe").value = "";
     document.getElementById("input-concepto").selectedIndex = 0;
+    document.getElementById("input-observaciones").value = "";
     document.getElementById("texto-foto-ticket").textContent = "Todavía no hay foto";
     document.getElementById("estado-ticket").textContent = "";
     const previa = document.querySelector("#zona-foto-ticket img");
@@ -612,31 +637,51 @@
   }
 
   // ---------- Guardar factura ----------
-  async function guardarFactura(file) {
+  let fotoFactura = null;
+
+  async function guardarFactura() {
     const estado = document.getElementById("estado-factura");
-    const btnFoto = document.getElementById("btn-foto-factura");
+    const btn = document.getElementById("btn-guardar-factura");
+    const categoria = document.getElementById("input-categoria-factura").value;
     estado.classList.remove("error");
+    estado.textContent = "";
+
+    if (!fotoFactura) {
+      estado.classList.add("error");
+      estado.textContent = "Falta la foto de la factura.";
+      return;
+    }
+
+    btn.disabled = true;
     estado.textContent = "Guardando…";
-    btnFoto.disabled = true;
 
     try {
       const token = await obtenerToken();
       const { marcaArchivo } = partesFecha();
-      const nombreFoto = `${marcaArchivo}.jpg`;
-      const blob = await comprimirImagen(file);
+      const nombreFoto = `Factura_${marcaArchivo}_${categoria}.jpg`;
+      const blob = await comprimirImagen(fotoFactura);
 
       await asegurarCarpeta(token, CARPETA_FACTURAS);
       await subirArchivo(token, `${CARPETA_FACTURAS}/${nombreFoto}`, blob, "image/jpeg");
 
-      mostrarToast("✓ FACTURA GUARDADA · pendiente de procesar");
-      estado.textContent = "";
+      mostrarToast(`✓ FACTURA GUARDADA · ${categoria.toUpperCase()} · pendiente de procesar`);
+      reiniciarFormularioFactura();
       irAInicio();
     } catch (e) {
       estado.classList.add("error");
       estado.textContent = e.message || "No se pudo guardar. Comprueba tu conexión e inténtalo de nuevo.";
     } finally {
-      btnFoto.disabled = false;
+      btn.disabled = false;
     }
+  }
+
+  function reiniciarFormularioFactura() {
+    fotoFactura = null;
+    document.getElementById("input-categoria-factura").selectedIndex = 0;
+    document.getElementById("texto-foto-factura").textContent = "Todavía no hay foto";
+    document.getElementById("estado-factura").textContent = "";
+    const previa = document.querySelector("#zona-foto-factura img");
+    if (previa) previa.remove();
   }
 
   // ---------- Últimos tickets ----------
@@ -697,7 +742,7 @@
   document.getElementById("btn-volver-ticket").addEventListener("click", irAInicio);
 
   document.getElementById("btn-ir-factura").addEventListener("click", () => {
-    document.getElementById("estado-factura").textContent = "";
+    reiniciarFormularioFactura();
     mostrarPantalla("factura");
   });
   document.getElementById("btn-volver-factura").addEventListener("click", irAInicio);
@@ -727,8 +772,18 @@
   document.getElementById("input-foto-factura").addEventListener("change", (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    guardarFactura(file);
+    fotoFactura = file;
+    const zona = document.getElementById("zona-foto-factura");
+    let img = zona.querySelector("img");
+    if (!img) {
+      img = document.createElement("img");
+      zona.insertBefore(img, zona.firstChild);
+    }
+    img.src = URL.createObjectURL(file);
+    document.getElementById("texto-foto-factura").textContent = "Foto lista";
   });
+
+  document.getElementById("btn-guardar-factura").addEventListener("click", guardarFactura);
 
   // ---------- Arranque ----------
   window.addEventListener("load", async () => {
