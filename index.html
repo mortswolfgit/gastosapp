@@ -8,6 +8,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#1F4D3D">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -272,6 +275,25 @@
     padding: 6px 20px 18px;
     text-align: center;
   }
+
+  .titulo-recientes {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+    margin: 24px 0 4px;
+  }
+  .fila-reciente {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: 9px 2px;
+    border-bottom: 1px dashed var(--line);
+  }
+  .fila-reciente span:first-child { color: var(--ink-soft); }
+  .fila-reciente span:last-child { font-weight: 500; }
 </style>
 </head>
 <body>
@@ -308,6 +330,7 @@
         <span class="desc">Solo la foto. Se procesa más adelante.</span>
       </button>
     </div>
+    <div id="lista-ultimos"></div>
     <div style="margin-top:auto; padding-top:20px; text-align:center;">
       <button class="btn-texto" id="btn-logout" type="button">Cerrar sesión</button>
     </div>
@@ -569,7 +592,7 @@
 
       mostrarToast(`✓ TICKET GUARDADO · ${importe}€ · ${concepto.toUpperCase()}`);
       reiniciarFormularioTicket();
-      mostrarPantalla("inicio");
+      irAInicio();
     } catch (e) {
       estado.classList.add("error");
       estado.textContent = e.message || "No se pudo guardar. Comprueba tu conexión e inténtalo de nuevo.";
@@ -607,13 +630,55 @@
 
       mostrarToast("✓ FACTURA GUARDADA · pendiente de procesar");
       estado.textContent = "";
-      mostrarPantalla("inicio");
+      irAInicio();
     } catch (e) {
       estado.classList.add("error");
       estado.textContent = e.message || "No se pudo guardar. Comprueba tu conexión e inténtalo de nuevo.";
     } finally {
       btnFoto.disabled = false;
     }
+  }
+
+  // ---------- Últimos tickets ----------
+  async function cargarUltimosTickets() {
+    const contenedor = document.getElementById("lista-ultimos");
+    contenedor.innerHTML = "";
+    try {
+      if (msalInstance.getAllAccounts().length === 0) return;
+      const token = await obtenerToken();
+      const csv = await leerTexto(token, `${CARPETA_TICKETS}/${NOMBRE_CSV}`);
+      if (!csv) return;
+      const lineas = csv.split("\n").map(l => l.trim()).filter(Boolean);
+      lineas.shift(); // quitar la cabecera
+      const ultimas = lineas.slice(-4).reverse();
+      if (ultimas.length === 0) return;
+
+      const titulo = document.createElement("p");
+      titulo.className = "titulo-recientes";
+      titulo.textContent = "ÚLTIMOS TICKETS";
+      contenedor.appendChild(titulo);
+
+      ultimas.forEach(linea => {
+        const partes = linea.split(";");
+        if (partes.length < 3) return;
+        const [fecha, importe, concepto] = partes;
+        const fila = document.createElement("div");
+        fila.className = "fila-reciente";
+        const izq = document.createElement("span");
+        izq.textContent = `${fecha.slice(0, 5)} · ${concepto}`;
+        const der = document.createElement("span");
+        der.textContent = `${importe}€`;
+        fila.append(izq, der);
+        contenedor.appendChild(fila);
+      });
+    } catch (e) {
+      // Es un añadido informativo: si falla, la app sigue funcionando igual sin él.
+    }
+  }
+
+  function irAInicio() {
+    mostrarPantalla("inicio");
+    cargarUltimosTickets();
   }
 
   // ---------- Eventos ----------
@@ -629,13 +694,13 @@
     reiniciarFormularioTicket();
     mostrarPantalla("ticket");
   });
-  document.getElementById("btn-volver-ticket").addEventListener("click", () => mostrarPantalla("inicio"));
+  document.getElementById("btn-volver-ticket").addEventListener("click", irAInicio);
 
   document.getElementById("btn-ir-factura").addEventListener("click", () => {
     document.getElementById("estado-factura").textContent = "";
     mostrarPantalla("factura");
   });
-  document.getElementById("btn-volver-factura").addEventListener("click", () => mostrarPantalla("inicio"));
+  document.getElementById("btn-volver-factura").addEventListener("click", irAInicio);
 
   document.getElementById("btn-foto-ticket").addEventListener("click", () => {
     document.getElementById("input-foto-ticket").click();
@@ -676,7 +741,7 @@
       document.getElementById("error-login").textContent = "No se pudo completar el inicio de sesión: " + detalle;
     }
     const cuentas = msalInstance.getAllAccounts();
-    mostrarPantalla(cuentas.length > 0 ? "inicio" : "login");
+    if (cuentas.length > 0) { irAInicio(); } else { mostrarPantalla("login"); }
   });
 })();
 </script>
