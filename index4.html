@@ -349,11 +349,6 @@
     </div>
 
     <div class="campo">
-      <label for="input-fecha-ticket">Fecha</label>
-      <input type="date" id="input-fecha-ticket">
-    </div>
-
-    <div class="campo">
       <label for="input-importe">Importe (€)</label>
       <input type="text" id="input-importe" inputmode="decimal" placeholder="12,50">
       <p class="error-campo" id="error-importe">Escribe un importe válido, por ejemplo 12,50</p>
@@ -394,11 +389,6 @@
     </div>
 
     <div class="campo">
-      <label for="input-fecha-factura">Fecha</label>
-      <input type="date" id="input-fecha-factura">
-    </div>
-
-    <div class="campo">
       <label for="input-categoria-factura">Categoría</label>
       <select id="input-categoria-factura">
         <option value="Gasolina">Gasolina</option>
@@ -433,8 +423,6 @@
   const CARPETA_FACTURAS = "GastosApp/Facturas pendientes";
   const NOMBRE_CSV = "tickets.csv";
   const CABECERA_CSV = "fecha;importe;concepto;archivo;observaciones";
-  const NOMBRE_CSV_FACTURAS = "facturas.csv";
-  const CABECERA_CSV_FACTURAS = "fecha;categoria;archivo";
 
   const msalConfig = {
     auth: {
@@ -468,14 +456,6 @@
 
   // ---------- Utilidades de fecha ----------
   function pad(n) { return String(n).padStart(2, "0"); }
-  function fechaISOHoy() {
-    const d = new Date();
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  }
-  function isoAFechaEs(iso) {
-    const [y, m, d] = iso.split("-");
-    return `${d}/${m}/${y}`;
-  }
   function partesFecha() {
     const d = new Date();
     return {
@@ -622,8 +602,7 @@
       const token = await obtenerToken();
       const importe = normalizarImporte(importeCampo.value);
       const observaciones = document.getElementById("input-observaciones").value.trim();
-      const { marcaArchivo } = partesFecha();
-      const fechaEs = isoAFechaEs(document.getElementById("input-fecha-ticket").value || fechaISOHoy());
+      const { fechaEs, marcaArchivo } = partesFecha();
       const nombreFoto = `${marcaArchivo}_${concepto}.jpg`;
       const blob = await comprimirImagen(fotoTicket);
 
@@ -648,7 +627,6 @@
 
   function reiniciarFormularioTicket() {
     fotoTicket = null;
-    document.getElementById("input-fecha-ticket").value = fechaISOHoy();
     document.getElementById("input-importe").value = "";
     document.getElementById("input-concepto").selectedIndex = 0;
     document.getElementById("input-observaciones").value = "";
@@ -680,17 +658,11 @@
     try {
       const token = await obtenerToken();
       const { marcaArchivo } = partesFecha();
-      const fechaEs = isoAFechaEs(document.getElementById("input-fecha-factura").value || fechaISOHoy());
       const nombreFoto = `Factura_${marcaArchivo}_${categoria}.jpg`;
       const blob = await comprimirImagen(fotoFactura);
 
       await asegurarCarpeta(token, CARPETA_FACTURAS);
       await subirArchivo(token, `${CARPETA_FACTURAS}/${nombreFoto}`, blob, "image/jpeg");
-
-      let csv = await leerTexto(token, `${CARPETA_FACTURAS}/${NOMBRE_CSV_FACTURAS}`);
-      if (csv === null) csv = CABECERA_CSV_FACTURAS;
-      csv += `\n${fechaEs};${categoria};${nombreFoto}`;
-      await subirArchivo(token, `${CARPETA_FACTURAS}/${NOMBRE_CSV_FACTURAS}`, new Blob([csv], { type: "text/csv" }), "text/csv");
 
       mostrarToast(`✓ FACTURA GUARDADA · ${categoria.toUpperCase()} · pendiente de procesar`);
       reiniciarFormularioFactura();
@@ -705,7 +677,6 @@
 
   function reiniciarFormularioFactura() {
     fotoFactura = null;
-    document.getElementById("input-fecha-factura").value = fechaISOHoy();
     document.getElementById("input-categoria-factura").selectedIndex = 0;
     document.getElementById("texto-foto-factura").textContent = "Todavía no hay foto";
     document.getElementById("estado-factura").textContent = "";
